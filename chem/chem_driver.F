@@ -910,7 +910,7 @@
            config_flags%chem_opt /= CHEM_VASH .and. &
            config_flags%chem_opt /= CHEM_VOLC .and. &
            config_flags%chem_opt /= CHEM_VOLC_4BIN .and. &
-           config_flags%chem_opt /= DUST .and. &
+!/           config_flags%chem_opt /= DUST .and. &
            config_flags%chem_opt /= CHEM_TRACE2 .and. &
            config_flags%chem_opt /= CO2_TRACER  .and. &
            config_flags%chem_opt /= GHG_TRACER ) then
@@ -1677,8 +1677,14 @@ end if !Chemistry time step check
 !
         if(config_flags%wetscav_onoff<0)then
            call wrf_debug(15,'calculate LS wet deposition')
-           call wetdep_ls(grid%dt,chem,grid%rainncv,moist,rho,num_moist, &
-                num_chem,numgas,dz8w,vvel,grid%chem_opt,                 &
+           call wetdep_ls(grid%dt,chem,grid%rainncv+grid%raincv,moist,rho,num_moist, &
+                num_chem,numgas,dz8w,vvel,grid%chem_opt, rri,            &
+                grid%wetdep_1, grid%wetdep_2, grid%wetdep_3,             &
+                grid%wetdep_4, grid%wetdep_5,                            &
+                grid%dustwdload_1, grid%dustwdload_2, grid%dustwdload_3, &
+                grid%dustwdload_4, grid%dustwdload_5,                    &
+                grid%dustwd_1, grid%dustwd_2, grid%dustwd_3,             &
+                grid%dustwd_4, grid%dustwd_5,                            &
                 ids,ide, jds,jde, kds,kde,                               &
                 ims,ime, jms,jme, kms,kme,                               &
                 its,ite, jts,jte, kts,kte                                )

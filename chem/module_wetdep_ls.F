@@ -1,11 +1,15 @@
 MODULE module_wetdep_ls
 USE module_state_description, only:p_qv,p_qc,p_so2,p_sulf, &
                               p_bc1,p_bc2,p_oc1,p_oc2,p_seas_1,p_seas_2,     &
-                              p_seas_3,p_seas_4,p_dms
+                              p_seas_3,p_seas_4,p_dms,p_dust_1,p_dust_2,     &
+                              p_dust_3,p_dust_4,p_dust_5
 
 CONTAINS
 subroutine wetdep_ls(dt,var,rain,moist,rho,num_moist, &
-         num_chem,numgas,dz8w,vvel,chem_opt,             &
+         num_chem,numgas,dz8w,vvel,chem_opt, alt,             &
+         wetdep_1, wetdep_2, wetdep_3, wetdep_4, wetdep_5, &
+         dustwdload_1, dustwdload_2, dustwdload_3, dustwdload_4, dustwdload_5, &
+         dustwd_1, dustwd_2, dustwd_3, dustwd_4, dustwd_5, &
          ids,ide, jds,jde, kds,kde,                                        &
          ims,ime, jms,jme, kms,kme,                                        &
          its,ite, jts,jte, kts,kte                                         )
@@ -20,11 +24,20 @@ subroutine wetdep_ls(dt,var,rain,moist,rho,num_moist, &
     REAL, DIMENSION( ims:ime, kms:kme, jms:jme, num_moist ),                &
          INTENT(IN ) ::                                   moist
    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ),                        &
-          INTENT(IN   ) :: rho,dz8w,vvel        
+          INTENT(IN   ) :: rho,dz8w,vvel,alt        
    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ,1:num_chem),                        &
           INTENT(INOUT) :: var        
    REAL,  DIMENSION( ims:ime , jms:jme ),                                  &
           INTENT(IN   ) :: rain
+   REAL,  DIMENSION( ims:ime , jms:jme ),                                  &
+          INTENT(OUT  ) :: wetdep_1, wetdep_2, wetdep_3, wetdep_4,         &
+                           wetdep_5
+   REAL,  DIMENSION( ims:ime , jms:jme ),                                  &
+          INTENT(OUT  ) :: dustwdload_1, dustwdload_2, dustwdload_3,       &
+                           dustwdload_4, dustwdload_5
+   REAL,  DIMENSION( ims:ime, kms:kme, jms:jme ),                          &
+          INTENT(OUT  ) :: dustwd_1, dustwd_2, dustwd_3, dustwd_4,         &
+                           dustwd_5
 !  REAL,  DIMENSION( ims:ime ,  jms:jme ),                                  &
 !         INTENT(INOUT   ) :: var_rmv
    REAL,  DIMENSION( its:ite ,  jts:jte ) :: var_sum,var_rmv
@@ -35,6 +48,22 @@ subroutine wetdep_ls(dt,var,rain,moist,rho,num_moist, &
     rho_water = 1000.
 !   write(0,*) 'in wetdepls, numgas,num_chem = ',numgas,num_chem,chem_opt
 !   nv=p_bc1
+    wetdep_1 = 0.0
+    wetdep_2 = 0.0
+    wetdep_3 = 0.0
+    wetdep_4 = 0.0
+    wetdep_5 = 0.0
+    dustwdload_1 = 0.0
+    dustwdload_2 = 0.0
+    dustwdload_3 = 0.0
+    dustwdload_4 = 0.0
+    dustwdload_5 = 0.0
+    dustwd_1 = 0.0
+    dustwd_2 = 0.0
+    dustwd_3 = 0.0
+    dustwd_4 = 0.0
+    dustwd_5 = 0.0
+
     do nv=1,num_chem
        if(nv.le. numgas .and. nv.ne.p_sulf)cycle
        alpha = .5    ! scavenging factor
@@ -43,7 +72,10 @@ subroutine wetdep_ls(dt,var,rain,moist,rho,num_moist, &
           if(nv.eq.p_bc2 .or. nv.eq.p_oc2)alpha=0.8
        endif
        if(nv.eq.p_sulf .or. nv.eq.p_seas_1 .or. nv.eq.p_seas_2    &
-                       .or. nv.eq.p_seas_3 .or. nv.eq.p_seas_4)alpha=1.
+                       .or. nv.eq.p_seas_3 .or. nv.eq.p_seas_4    &
+                        .or. nv.eq.p_dust_1 .or. nv.eq.p_dust_2   &
+                        .or. nv.eq.p_dust_3 .or. nv.eq.p_dust_4   &
+                        .or. nv.eq.p_dust_5)alpha=1.
        do i=its,ite
        do j=jts,jte
         var_sum_clw(i,j)=0.
@@ -85,6 +117,31 @@ subroutine wetdep_ls(dt,var,rain,moist,rho,num_moist, &
 !       write(0,*)'var before ',k,km,var(i,k,j,nv),factor
         dvar=alpha*factor/(1+factor)*var(i,k,j,nv)
         var(i,k,j,nv)=max(1.e-16,var(i,k,j,nv)-dvar)
+        if (nv == p_dust_1) then
+          if (k==kts) wetdep_1(i,j) = dvar/alt(i,k,j) * dz8w(i,k,j) / dt
+          dustwd_1(i,k,j)=dvar
+          dustwdload_1(i,j)= dustwdload_1(i,j) + dvar/alt(i,k,j) * dz8w(i,k,j)
+        endif
+        if (nv == p_dust_2) then
+          if (k==kts) wetdep_2(i,j) = dvar/alt(i,k,j) * dz8w(i,k,j) / dt
+          dustwd_2(i,k,j)=dvar
+          dustwdload_2(i,j)= dustwdload_2(i,j) + dvar/alt(i,k,j) * dz8w(i,k,j)
+        endif
+        if (nv == p_dust_3) then
+          if (k==kts) wetdep_3(i,j) = dvar/alt(i,k,j) * dz8w(i,k,j) / dt
+          dustwd_3(i,k,j)=dvar
+          dustwdload_3(i,j)= dustwdload_3(i,j) + dvar/alt(i,k,j) * dz8w(i,k,j)
+        endif
+        if (nv == p_dust_4) then
+          if (k==kts) wetdep_4(i,j) = dvar/alt(i,k,j) * dz8w(i,k,j) / dt
+          dustwd_4(i,k,j)=dvar
+          dustwdload_4(i,j)= dustwdload_4(i,j) + dvar/alt(i,k,j) * dz8w(i,k,j)
+        endif
+        if (nv == p_dust_5) then
+          if (k==kts) wetdep_5(i,j) = dvar/alt(i,k,j) * dz8w(i,k,j) / dt
+          dustwd_5(i,k,j)=dvar
+          dustwdload_5(i,j)= dustwdload_5(i,j) + dvar/alt(i,k,j) * dz8w(i,k,j)
+        endif
 !       write(0,*)'var after ',km,var(i,k,j,nv),dvar
         endif
        enddo
